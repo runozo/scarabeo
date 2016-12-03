@@ -48,9 +48,9 @@ class Solver(object):
         if chars_from_caret == 6:
             total_sum += 10
         elif chars_from_caret == 7:
-            total_sum += 20
-        elif chars_from_caret == 8:
             total_sum += 30
+        elif chars_from_caret == 8:
+            total_sum += 50
         # print(word, total_sum)
         return total_sum
 
@@ -87,4 +87,4 @@ class Solver(object):
                         if all(char in caret and c_caret[char] >= c_word[char]
                                 for char in word):
                             all_words.append(word)
-        return sorted(all_words, key=self.calculate_score, reverse=True)
+        return [(x, self.calculate_score(x)) for x in sorted(all_words, key=self.calculate_score, reverse=True)]
