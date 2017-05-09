@@ -1,6 +1,6 @@
 # scarabeo
 
-This is a simple [scarabeo](https://boardgamegeek.com/boardgame/12747/scarabeo) game solver. For now it's only for italian version but is very esy to add dicts for other languages.
+This is a simple [scarabeo](https://boardgamegeek.com/boardgame/12747/scarabeo) game solver. For now it's only for italian version but it's very easy to add dicts for other languages.
 
 ## Usage
 
