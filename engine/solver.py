@@ -1,7 +1,8 @@
-"""The scrabble solver engine"""
+"""Scrabble solver engine."""
 import re
 from collections import Counter
 
+# score values for any letter
 POINTS = {'a': 1,
           'b': 4,
           'c': 1,
@@ -31,6 +32,8 @@ class Solver(object):
 
     def __init__(self, wordfile):
         """
+        Costructor.
+
         Args:
             wordfile: a text file with a list of
             (possibly) all the words in a language.
@@ -40,23 +43,33 @@ class Solver(object):
         self.crossing_letters = ''
 
     def calculate_score(self, word):
+        """
+        Calculate the score of a word.
+
+        Args:
+            word
+        """
+
         total_sum = 0
+
         for char in word:
             total_sum += POINTS.get(char)
         chars_from_caret = len(
             word) - len(self.crossing_letters.replace(' ', ''))
+
+        # add the word lenght bonuses to the final score
         if chars_from_caret == 6:
             total_sum += 10
         elif chars_from_caret == 7:
             total_sum += 30
         elif chars_from_caret == 8:
             total_sum += 50
-        # print(word, total_sum)
+
         return total_sum
 
     def find_words(self, caret, crossing_letters=None):
         """
-        Find all the words in a caret.
+        Find all the words matching a caret.
 
         Args:
 
@@ -82,9 +95,9 @@ class Solver(object):
                 word = word.strip()
 
                 if len(word) <= len(caret) and regexp.match(word):
-                    if len(word) > 0:
+                    if word:
                         c_word = Counter(word)
                         if all(char in caret and c_caret[char] >= c_word[char]
-                                for char in word):
+                               for char in word):
                             all_words.append(word)
         return [(x, self.calculate_score(x)) for x in sorted(all_words, key=self.calculate_score, reverse=True)]
