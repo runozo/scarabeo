@@ -4,7 +4,7 @@ This is a simple brute force [scarabeo](https://boardgamegeek.com/boardgame/1274
 
 ## Usage
 
-Just pass your caret letters as first parameter then the letter you need to cross with your word as seconbd parameter (may be also empty). It returns a rough list of (word, score) orderes tuples. 
+Just pass your caret letters as first parameter then the letter you need to cross with your word as second parameter (may be also empty). It returns a rough list of (word, score) ordered tuples. 
 
 ### Example 
 
