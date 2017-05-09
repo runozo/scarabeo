@@ -1,4 +1,4 @@
-"""Scarabeo solver."""
+"""Finds most score value words."""
 WORDFILE = 'dicts/italia-1a'
 import random
 from engine.solver import Solver

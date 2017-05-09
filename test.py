@@ -1,4 +1,4 @@
-"""Scarabeo solver."""
+"""Not a real test."""
 WORDFILE = 'dicts/italia-1a'
 from engine.solver import Solver
 

@@ -1,4 +1,4 @@
-"""Scarabeo solver."""
+"""A game simulation between 2 solvers."""
 WORDFILE = 'dicts/italia-1a'
 import random
 from engine.solver import Solver
