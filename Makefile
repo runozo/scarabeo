@@ -21,7 +21,7 @@ MAX_TURNS ?= 0
 
 .DEFAULT_GOAL := help
 .PHONY: help all build build-all install version run run-solve run-play run-top \
-        fmt fmt-check vet lint tidy test test-race test-verbose test-cover \
+        serve fmt fmt-check vet lint tidy test test-race test-verbose test-cover \
         bench bench-cpu bench-mem clean
 
 help: ## Show this help
@@ -62,6 +62,9 @@ run-play: build ## Simulate a game (PLAYERS=... SEED=... MAX_TURNS=...)
 
 run-top: build ## Show the best words (TOP_N=...)
 	$(BIN_DIR)/$(BINARY) top -dict $(DICT) -rack-size $(RACK) -n $(TOP_N)
+
+serve: ## Serve the HTML board page at http://localhost:8080
+	$(GO) run ./cmd/webserve -addr :8080 -dir web
 
 ## Quality
 

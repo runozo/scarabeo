@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tileset Scarabeo (versione italiana) - SVG originale, libero da usare -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <defs>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf3dd"/>
+      <stop offset="1" stop-color="#eadfbf"/>
+    </linearGradient>
+  </defs>
+  <symbol id="tile-A" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">A</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-B" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">B</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-C" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">C</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-D" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">D</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-E" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">E</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-F" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">F</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-G" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">G</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-H" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">H</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">8</text>
+  </symbol>
+  <symbol id="tile-I" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">I</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-L" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">L</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">2</text>
+  </symbol>
+  <symbol id="tile-M" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">M</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">2</text>
+  </symbol>
+  <symbol id="tile-N" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">N</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">2</text>
+  </symbol>
+  <symbol id="tile-O" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">O</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-P" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">P</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">3</text>
+  </symbol>
+  <symbol id="tile-Q" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">Q</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">10</text>
+  </symbol>
+  <symbol id="tile-R" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">R</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-S" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">S</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-T" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">T</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">1</text>
+  </symbol>
+  <symbol id="tile-U" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">U</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-V" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">V</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">4</text>
+  </symbol>
+  <symbol id="tile-Z" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <text class="tile-letter" x="50" y="66" text-anchor="middle">Z</text>
+    <text class="tile-value" x="82" y="90" text-anchor="middle">8</text>
+  </symbol>
+  <symbol id="tile-JOLLY" viewBox="0 0 100 100">
+    <rect x="4" y="4" width="92" height="92" rx="11" fill="url(#ivory)" stroke="#b39a5f" stroke-width="3"/>
+    <g fill="#c0392b">
+      <ellipse cx="50" cy="56" rx="19" ry="25"/>
+      <circle cx="50" cy="30" r="9"/>
+      <path d="M31 42 L17 34 M31 56 L15 56 M31 70 L17 78 M69 42 L83 34 M69 56 L85 56 M69 70 L83 78"
+            stroke="#c0392b" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <line x1="50" y1="38" x2="50" y2="79" stroke="#8e2b1f" stroke-width="3"/>
+    </g>
+  </symbol>
+</svg>

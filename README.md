@@ -102,6 +102,36 @@ Global crate: 111 tiles
 ...
 ```
 
+## Tavolo di gioco (pagina HTML)
+
+Nella cartella `web/` c'è una ricostruzione del tavolo Scarabeo 17×17 come pagina
+HTML, con un tileset **SVG originale** (nessuna immagine di terze parti).
+
+```sh
+make serve          # http://localhost:8080
+```
+
+La pagina mostra la plancia con le caselle premio (2L, 3L, 2P, 3P e lo scarabeo
+al centro), un rack da 8 tessere, il set completo delle lettere con valori e
+quantità, e permette di posare le tessere e calcolare il punteggio della mossa
+(bonus 6/7/8 lettere inclusi). Funziona anche aprendo `web/index.html`
+direttamente nel browser.
+
+Regole applicate:
+
+- da 2 a 4 giocatori, turni alternati, 8 tessere a testa con ripesca dal sacchetto;
+- la **prima parola deve coprire il centro** (🪲);
+- le tessere di una mossa stanno su **una sola riga o colonna**, **adiacenti**
+  (senza buchi) e devono **collegarsi** ad almeno una lettera già presente;
+- le **parole già giocate sono bloccate** e non si possono modificare;
+- bonus lunghezza 6/7/8 → +10/+30/+50 e bonus speciale **+100 per la parola
+  “SCARABEO”**;
+- fine partita quando il sacchetto è vuoto e nessuno ha più tessere; vince il
+  punteggio più alto.
+
+Il layout delle caselle premio è stato ricostruito dalla plancia originale
+Editrice Giochi ed è verificato per simmetria; il tileset è in `web/tiles.svg`.
+
 ## Scoring
 
 Letter values follow the Italian Scarabeo rules. Length bonuses are applied on
