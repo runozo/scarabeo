@@ -102,22 +102,23 @@ Global crate: 111 tiles
 ...
 ```
 
-## Tavolo di gioco (pagina HTML)
+## Tavolo di gioco multigiocatore (WebSocket)
 
-Nella cartella `web/` c'è una ricostruzione del tavolo Scarabeo 17×17 come pagina
-HTML, con un tileset **SVG originale** (nessuna immagine di terze parti).
+In `web/` c'è il client (plancia 17×17 + tileset **SVG originale**, nessuna
+immagine di terze parti) e in `internal/server` il server WebSocket che gestisce
+le partite. **Tutta la validazione delle regole e il calcolo del punteggio
+vivono sul server**: il client invia solo le mosse e riceve lo stato.
 
 ```sh
 make serve          # http://localhost:8080
 ```
 
-La pagina mostra la plancia con le caselle premio (2L, 3L, 2P, 3P e lo scarabeo
-al centro), un rack da 8 tessere, il set completo delle lettere con valori e
-quantità, e permette di posare le tessere e calcolare il punteggio della mossa
-(bonus 6/7/8 lettere inclusi). Funziona anche aprendo `web/index.html`
-direttamente nel browser.
+Apri la pagina su più browser/dispositivi e inserisci un nome: il primo crea la
+partita e ottiene un **codice** (es. `T6UB`), gli altri entrano con lo stesso
+codice. L'host avvia la partita quando ci sono almeno 2 giocatori (max 4). Ogni
+client vede solo il proprio rack; gli altri mostrano il numero di tessere.
 
-Regole applicate:
+Regole validate dal server:
 
 - da 2 a 4 giocatori, turni alternati, 8 tessere a testa con ripesca dal sacchetto;
 - la **prima parola deve coprire il centro** (🪲);
@@ -126,8 +127,20 @@ Regole applicate:
 - le **parole già giocate sono bloccate** e non si possono modificare;
 - bonus lunghezza 6/7/8 → +10/+30/+50 e bonus speciale **+100 per la parola
   “SCARABEO”**;
-- fine partita quando il sacchetto è vuoto e nessuno ha più tessere; vince il
-  punteggio più alto.
+- fine partita quando il sacchetto è vuoto e nessuno ha più tessere (o tutti
+  passano); vince il punteggio più alto.
+
+Il client usa un messaggio `preview` per mostrare in anteprima validità e
+punteggio della mossa in corso, sempre calcolati dal server.
+
+Architettura:
+
+| Pacchetto | Ruolo |
+| --- | --- |
+| `internal/play` | Motore autoritativo: plancia, regole, punteggio |
+| `internal/server` | Hub delle stanze, connessioni WebSocket, protocollo |
+| `web/` | Client thin: rendering e invio mosse |
+| `cmd/webserve` | Avvia server HTTP + WebSocket e serve `web/` |
 
 Il layout delle caselle premio è stato ricostruito dalla plancia originale
 Editrice Giochi ed è verificato per simmetria; il tileset è in `web/tiles.svg`.

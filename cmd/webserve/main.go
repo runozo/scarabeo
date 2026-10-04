@@ -1,4 +1,5 @@
-// Command webserve serves the static Scarabeo board page.
+// Command webserve runs the Scarabeo WebSocket game server and serves the
+// static client from the web/ directory.
 package main
 
 import (
@@ -7,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/runozo/scarabeo/internal/server"
 )
 
 func main() {
@@ -20,8 +23,9 @@ func main() {
 	}
 	abs, _ := filepath.Abs(*dir)
 
-	log.Printf("Scarabeo board: serving %s on http://localhost%s", abs, *addr)
-	if err := http.ListenAndServe(*addr, http.FileServer(http.Dir(*dir))); err != nil {
+	srv := server.New(*dir)
+	log.Printf("Scarabeo server: http://localhost%s (WebSocket /ws, static %s)", *addr, abs)
+	if err := http.ListenAndServe(*addr, srv.Handler()); err != nil {
 		log.Fatal(err)
 	}
 }

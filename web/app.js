@@ -1,19 +1,14 @@
-/* Scarabeo — tavolo di gioco (versione italiana, 17x17)
- * Tileset SVG originale, layout ricostruito dalla plancia Editrice Giochi.
- * Regole: prima mossa sul centro, collegamento, linea continua, +100 SCARABEO,
- * parole giocate bloccate, turni tra 2-4 giocatori.
+/* Scarabeo — client WebSocket.
+ * Tutta la validazione delle regole e il punteggio vivono sul server.
+ * Il client mostra lo stato ricevuto e invia le mosse.
  */
 (() => {
   "use strict";
 
   const NS = "http://www.w3.org/2000/svg";
   const SIZE = 17;
-  const CENTER = 8;
-  const RACK_SIZE = 8;
 
-  // --- Layout della plancia ---------------------------------------------
-  // N normale · L doppia lettera (2L) · T tripla lettera (3L)
-  // D doppia parola (2P) · W tripla parola (3P) · C centro (scarabeo)
+  // --- Layout della plancia (statico, uguale al server) -----------------
   const LAYOUT = [
     "WNNNLNNNWNNNLNNNW",
     "NDNNNNTNNNTNNNNDN",
@@ -33,29 +28,22 @@
     "NDNNNNTNNNTNNNNDN",
     "WNNNLNNNWNNNLNNNW",
   ];
-
   const CELL_LABEL = { L: "2L", T: "3L", D: "2P", W: "3P" };
   const CELL_CLASS = { N: "", L: "dl", T: "tl", D: "dw", W: "tw", C: "center" };
 
-  // --- Valori e distribuzione (Scarabeo) --------------------------------
   const VALUES = {
     A: 1, B: 4, C: 1, D: 4, E: 1, F: 4, G: 4, H: 8, I: 1, L: 2,
-    M: 2, N: 2, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1, U: 4, V: 4, Z: 8,
-    "?": 0,
+    M: 2, N: 2, O: 1, P: 3, Q: 10, R: 1, S: 1, T: 1, U: 4, V: 4, Z: 8, "?": 0,
   };
   const COUNTS = {
     A: 12, B: 4, C: 7, D: 4, E: 12, F: 4, G: 4, H: 2, I: 12, L: 6,
-    M: 6, N: 6, O: 12, P: 4, Q: 2, R: 7, S: 7, T: 7, U: 4, V: 4, Z: 2,
-    "?": 2,
+    M: 6, N: 6, O: 12, P: 4, Q: 2, R: 7, S: 7, T: 7, U: 4, V: 4, Z: 2, "?": 2,
   };
   const LETTERS = Object.keys(VALUES);
-  const SCARABEO_BONUS = 100;
 
-  const letterMult = (t) => (t === "L" ? 2 : t === "T" ? 3 : 1);
-  const wordMult = (t) => (t === "D" ? 2 : t === "W" ? 3 : 1);
-  const lengthBonus = (n) => (n === 6 ? 10 : n === 7 ? 30 : n === 8 ? 50 : 0);
+  const $ = (id) => document.getElementById(id);
 
-  // --- Tileset SVG (definizioni <symbol>) -------------------------------
+  // --- Tileset SVG ------------------------------------------------------
   function buildDefs() {
     let s = '<defs><linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">' +
       '<stop offset="0" stop-color="#fbf3dd"/><stop offset="1" stop-color="#eadfbf"/>' +
@@ -87,122 +75,146 @@
     return svg;
   }
 
-  // --- Stato ------------------------------------------------------------
-  let bag = [];
-  let board = [];        // board[r][c] = {type} | {letter,value,type,jolly,assigned}
-  let players = [];      // {name, rack:[], score}
-  let current = 0;
-  let move = [];         // celle posate in questo turno
-  let moveSet = new Set();
+  // --- Stato del client -------------------------------------------------
+  let ws = null;
+  let myId = null;
+  let host = false;
+  let gameCode = "";
+  let state = null;        // ultimo stato ricevuto dal server
+  let pending = [];        // posizionamenti locali non ancora confermati
+  let preview = null;      // ultima preview del server
   let selected = -1;
-  let gameOver = false;
+  let previewTimer = null;
+  let awaitingMove = false;
 
-  const $ = (id) => document.getElementById(id);
+  // --- Connessione ------------------------------------------------------
+  function connect() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const url = `${proto}://${location.host}/ws`;
+    setConn(`Connessione a ${url}…`);
+    ws = new WebSocket(url);
+    ws.onopen = () => setConn("Connesso. Inserisci un nome e crea/entra in una partita.");
+    ws.onclose = () => { setConn("Connessione chiusa. Ricarica la pagina."); };
+    ws.onerror = () => setConn("Errore di connessione.");
+    ws.onmessage = (ev) => {
+      let m;
+      try { m = JSON.parse(ev.data); } catch { return; }
+      handle(m);
+    };
+  }
 
-  function newBag() {
-    const b = [];
-    for (const L of LETTERS) for (let i = 0; i < COUNTS[L]; i++) b.push(L);
-    for (let i = b.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [b[i], b[j]] = [b[j], b[i]];
+  function send(obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+  }
+
+  function handle(m) {
+    switch (m.type) {
+      case "joined":
+        myId = m.playerId;
+        host = !!m.host;
+        gameCode = m.game;
+        $("lobby-code").textContent = m.game;
+        $("game-card").classList.remove("hidden");
+        $("rack-card").classList.remove("hidden");
+        setStatus(host ? "Sei l'host: avvia la partita quando ci sono almeno 2 giocatori." : "In attesa dell'host…");
+        break;
+      case "state":
+        onState(m.state);
+        break;
+      case "preview":
+        preview = m.preview;
+        updateMoveScore();
+        break;
+      case "error":
+        setStatus("⚠ " + m.message);
+        awaitingMove = false;
+        renderControls();
+        break;
+      default:
+        break;
     }
-    return b;
   }
 
-  function emptyBoard() {
-    return Array.from({ length: SIZE }, (_, r) =>
-      Array.from({ length: SIZE }, (_, c) => ({ type: LAYOUT[r][c] }))
-    );
-  }
-
-  function boardIsEmpty() {
-    for (let r = 0; r < SIZE; r++)
-      for (let c = 0; c < SIZE; c++)
-        if (board[r][c].letter !== undefined && !moveSet.has(r + "," + c)) return false;
-    return true;
-  }
-
-  // --- Partita ----------------------------------------------------------
-  function startGame(n) {
-    bag = newBag();
-    board = emptyBoard();
-    players = Array.from({ length: n }, (_, i) => ({ name: `Giocatore ${i + 1}`, rack: [], score: 0 }));
-    current = 0;
-    move = [];
-    moveSet = new Set();
-    selected = -1;
-    gameOver = false;
-    for (const p of players) drawFor(p);
-    renderBoard();
-    renderPlayers();
-    renderRack();
-    updateScore();
-    setStatus(`Inizia ${players[current].name}. La prima parola deve coprire il centro (🪲).`);
-  }
-
-  function drawFor(p) {
-    while (p.rack.length < RACK_SIZE && bag.length > 0) p.rack.push(bag.pop());
+  function onState(s) {
+    state = s;
+    // se la mossa è stata accettata, il turno è passato o `last` è nostro
+    if (pending.length && (s.current !== myId || (s.last && s.last.playerId === myId))) {
+      pending = [];
+      preview = null;
+      selected = -1;
+    }
+    if (s.last && s.last.playerId === myId && awaitingMove) {
+      awaitingMove = false;
+    }
+    render();
   }
 
   // --- Rendering --------------------------------------------------------
-  function renderBoard() {
-    const el = $("board");
-    el.innerHTML = "";
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const cell = document.createElement("div");
-        const type = LAYOUT[r][c];
-        cell.className = "cell " + CELL_CLASS[type];
-        cell.dataset.r = r;
-        cell.dataset.c = c;
-        cell.setAttribute("role", "gridcell");
-        if (type === "C") cell.textContent = "🪲";
-        else if (CELL_LABEL[type]) cell.textContent = CELL_LABEL[type];
-        cell.addEventListener("click", () => onCellClick(r, c));
-        el.appendChild(cell);
-      }
+  function render() {
+    renderPlayers();
+    renderBoard();
+    renderRack();
+    renderControls();
+    updateMoveScore();
+    $("bag-count").textContent = state ? String(state.bag) : "0";
+    $("current-player").textContent = currentName();
+    if (state && state.phase === "over") {
+      const w = state.players.find((p) => p.id === state.winner);
+      setStatus(`Partita finita! Vince ${w ? w.name : "?"}.`);
     }
-    paintTiles();
   }
 
-  const cellEl = (r, c) => $("board").children[r * SIZE + c];
-
-  function paintTiles() {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const el = cellEl(r, c);
-        const t = board[r][c];
-        el.classList.remove("filled", "locked", "pending");
-        el.querySelectorAll("svg.tile").forEach((n) => n.remove());
-        if (t && t.letter !== undefined) {
-          const letter = t.jolly ? (t.assigned || "?") : t.letter;
-          el.appendChild(tileSVG(letter));
-          if (moveSet.has(r + "," + c)) el.classList.add("pending");
-          else el.classList.add("filled", "locked");
-        }
-      }
-    }
+  function currentName() {
+    if (!state) return "—";
+    const p = state.players.find((x) => x.id === state.current);
+    return p ? p.name : "—";
   }
 
   function renderPlayers() {
     const ul = $("players");
     ul.innerHTML = "";
-    players.forEach((p, i) => {
+    if (!state) return;
+    for (const p of state.players) {
       const li = document.createElement("li");
-      li.className = i === current && !gameOver ? "current" : "";
+      const isMe = p.id === myId;
+      li.className = (p.isCurrent ? "current " : "") + (isMe ? "me" : "");
       li.innerHTML =
-        `<span class="pname">${p.name}</span>` +
-        `<span class="pmeta">${p.score} pt · ${p.rack.length} tessere</span>`;
+        `<span class="pname">${escapeHtml(p.name)}${isMe ? " (tu)" : ""}` +
+        `${p.connected ? "" : " ⚫"}</span>` +
+        `<span class="pmeta">${p.score} pt · ${p.tiles} tessere</span>`;
       ul.appendChild(li);
-    });
-    $("current-player").textContent = players[current] ? players[current].name : "—";
+    }
+    const startBtn = $("start");
+    const restartBtn = $("restart");
+    startBtn.classList.toggle("hidden", !(host && state.phase === "lobby"));
+    startBtn.disabled = !state.canStart;
+    restartBtn.classList.toggle("hidden", !(host && state.phase !== "lobby"));
+  }
+
+  function renderBoard() {
+    // pulisce le tessere
+    const cells = $("board").children;
+    for (let i = 0; i < cells.length; i++) {
+      cells[i].classList.remove("filled", "locked", "pending");
+      cells[i].querySelectorAll("svg.tile").forEach((n) => n.remove());
+    }
+    const put = (r, c, letter, cls) => {
+      const el = cells[r * SIZE + c];
+      el.appendChild(tileSVG(letter));
+      el.classList.add(cls);
+    };
+    if (state) {
+      for (const t of state.board) put(t.row, t.col, t.letter, "filled locked");
+    }
+    for (const p of pending) put(p.r, p.c, p.jolly ? p.assigned : p.letter, "pending");
   }
 
   function renderRack() {
     const el = $("rack");
     el.innerHTML = "";
-    const rack = players[current] ? players[current].rack : [];
-    for (let i = 0; i < RACK_SIZE; i++) {
+    const rack = state ? state.rack : [];
+    const myTurn = isMyTurn();
+    for (let i = 0; i < 8; i++) {
       const L = rack[i];
       const btn = document.createElement("button");
       btn.className = "tile-btn" + (i === selected ? " selected" : "");
@@ -210,55 +222,74 @@
       if (L) {
         btn.appendChild(tileSVG(L));
         btn.title = L === "?" ? "Scarabeo (jolly)" : `Tessera ${L} (${VALUES[L]})`;
+        btn.disabled = !myTurn;
       } else {
         btn.disabled = true;
       }
       btn.addEventListener("click", () => onRackClick(i));
       el.appendChild(btn);
     }
-    $("bag-count").textContent = String(bag.length);
+  }
+
+  function renderControls() {
+    const myTurn = isMyTurn();
+    const playing = state && state.phase === "playing";
+    $("commit").disabled = !(myTurn && pending.length > 0 && !awaitingMove);
+    $("undo").disabled = !(myTurn && pending.length > 0);
+    $("pass").disabled = !(myTurn && playing);
+  }
+
+  function updateMoveScore() {
+    if (!pending.length) {
+      $("move-score").textContent = "Punteggio mossa: 0";
+      return;
+    }
+    if (preview) {
+      if (preview.valid) {
+        const extra = preview.words && preview.words.length ? ` (${preview.words.join(", ")})` : "";
+        $("move-score").textContent = "Punteggio mossa: " + preview.score + extra;
+      } else {
+        $("move-score").textContent = "⚠ " + preview.error;
+      }
+    } else {
+      $("move-score").textContent = "Punteggio mossa: …";
+    }
   }
 
   // --- Interazione ------------------------------------------------------
+  function isMyTurn() {
+    return !!(state && state.phase === "playing" && state.current === myId);
+  }
+
   function onRackClick(i) {
-    if (gameOver) return;
-    const rack = players[current].rack;
+    if (!isMyTurn()) return;
+    const rack = state.rack;
     if (!rack[i]) return;
     selected = selected === i ? -1 : i;
     renderRack();
   }
 
   function onCellClick(r, c) {
-    if (gameOver) return;
-    const t = board[r][c];
+    if (!isMyTurn()) return;
     const key = r + "," + c;
-
-    // riprende una tessera del turno corrente
-    if (t && t.letter !== undefined && moveSet.has(key)) {
-      players[current].rack.push(t.jolly ? "?" : t.letter);
-      board[r][c] = { type: LAYOUT[r][c] };
-      move = move.filter((m) => !(m.r === r && m.c === c));
-      moveSet.delete(key);
-      paintTiles();
-      renderRack();
-      updateScore();
+    const pi = pending.findIndex((p) => p.r === r && p.c === c);
+    if (pi >= 0) {
+      pending.splice(pi, 1);
+      schedulePreview();
+      renderBoard();
+      renderControls();
+      updateMoveScore();
       return;
     }
-    // parola già giocata: bloccata
-    if (t && t.letter !== undefined) {
-      setStatus("Questa parola è già stata giocata e non può essere modificata.");
-      return;
-    }
+    if (state.board.some((t) => t.row === r && t.col === c)) return; // occupata
 
-    const rack = players[current].rack;
-    if (selected < 0 || !rack[selected]) {
+    if (selected < 0 || !state.rack[selected]) {
       setStatus("Seleziona prima una tessera dal rack.");
       return;
     }
-
-    let letter = rack[selected];
+    const letter = state.rack[selected];
     let jolly = false;
-    let assigned = null;
+    let assigned = "";
     if (letter === "?") {
       const ans = (prompt("Scarabeo (jolly): quale lettera rappresenta? (A-Z)") || "").trim().toUpperCase();
       if (!/^[A-Z]$/.test(ans) || !(ans in VALUES)) {
@@ -268,178 +299,53 @@
       jolly = true;
       assigned = ans;
     }
-
-    board[r][c] = {
-      type: LAYOUT[r][c],
-      letter,
-      value: jolly ? VALUES[assigned] : VALUES[letter],
-      jolly,
-      assigned,
-    };
-    rack.splice(selected, 1);
+    pending.push({ r, c, letter, jolly, assigned });
     selected = -1;
-    move.push({ r, c });
-    moveSet.add(key);
-
-    paintTiles();
+    schedulePreview();
+    renderBoard();
     renderRack();
-    updateScore();
+    renderControls();
+    updateMoveScore();
     setStatus("");
   }
 
-  // --- Punteggio e parole ----------------------------------------------
-  function cellAt(r, c) {
-    if (r < 0 || c < 0 || r >= SIZE || c >= SIZE) return null;
-    const t = board[r][c];
-    return t && t.letter !== undefined ? t : null;
+  function placements() {
+    return pending.map((p) => ({
+      row: p.r, col: p.c, letter: p.letter, assigned: p.assigned || undefined,
+    }));
   }
 
-  function run(r, c, dir) {
-    const dr = dir === "V" ? 1 : 0;
-    const dc = dir === "H" ? 1 : 0;
-    let sr = r, sc = c;
-    while (cellAt(sr - dr, sc - dc)) { sr -= dr; sc -= dc; }
-    const cells = [];
-    let cr = sr, cc = sc;
-    while (cellAt(cr, cc)) { cells.push({ r: cr, c: cc }); cr += dr; cc += dc; }
-    return cells;
-  }
-
-  const letterOf = (cell) => (cell.jolly ? (cell.assigned || "") : cell.letter);
-
-  function wordsForMove() {
-    const seen = new Set();
-    const words = [];
-    for (const { r, c } of move) {
-      for (const dir of ["H", "V"]) {
-        const cells = run(r, c, dir);
-        if (cells.length < 2) continue;
-        const key = dir + ":" + cells.map((x) => x.r + "," + x.c).join(";");
-        if (seen.has(key)) continue;
-        seen.add(key);
-        words.push({ dir, cells, text: cells.map(({ r, c }) => letterOf(board[r][c])).join("") });
-      }
-    }
-    return words;
-  }
-
-  function scoreWord(cells) {
-    let sum = 0, mult = 1;
-    for (const { r, c } of cells) {
-      const cell = board[r][c];
-      if (moveSet.has(r + "," + c)) {
-        sum += cell.value * letterMult(cell.type);
-        mult *= wordMult(cell.type);
-      } else {
-        sum += cell.value;
-      }
-    }
-    return sum * mult;
-  }
-
-  function updateScore() {
-    const words = wordsForMove();
-    let score = words.reduce((s, w) => s + scoreWord(w.cells), 0);
-    const bonus = lengthBonus(move.length);
-    const scarabeo = words.some((w) => w.text === "SCARABEO") ? SCARABEO_BONUS : 0;
-    score += bonus + scarabeo;
-    const parts = [];
-    if (bonus) parts.push(`bonus lunghezza +${bonus}`);
-    if (scarabeo) parts.push(`SCARABEO +${scarabeo}`);
-    $("move-score").textContent = "Punteggio mossa: " + score + (parts.length ? ` (${parts.join(", ")})` : "");
-    return score;
-  }
-
-  // --- Validazione delle regole ----------------------------------------
-  function validateMove() {
-    if (move.length === 0) return "Nessuna tessera posata.";
-
-    const rows = new Set(move.map((m) => m.r));
-    const cols = new Set(move.map((m) => m.c));
-    if (rows.size > 1 && cols.size > 1) {
-      return "Le tessere devono essere tutte sulla stessa riga o colonna.";
-    }
-    const horizontal = rows.size === 1;
-    const sorted = [...move].sort((a, b) => (horizontal ? a.c - b.c : a.r - b.r));
-    const fixed = horizontal ? sorted[0].r : sorted[0].c;
-    const start = horizontal ? sorted[0].c : sorted[0].r;
-    const end = horizontal ? sorted[sorted.length - 1].c : sorted[sorted.length - 1].r;
-    for (let i = start; i <= end; i++) {
-      const r = horizontal ? fixed : i;
-      const c = horizontal ? i : fixed;
-      if (!cellAt(r, c)) return "Le tessere devono essere adiacenti, senza spazi vuoti.";
-    }
-
-    if (wordsForMove().length === 0) {
-      return "La mossa non forma nessuna parola (servono almeno 2 lettere).";
-    }
-
-    if (boardIsEmpty()) {
-      if (!move.some((m) => m.r === CENTER && m.c === CENTER)) {
-        return "La prima parola deve coprire il centro (🪲).";
-      }
-    } else {
-      const connected = move.some((m) =>
-        [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dr, dc]) => {
-          const rr = m.r + dr, cc = m.c + dc;
-          const t = cellAt(rr, cc);
-          return t && !moveSet.has(rr + "," + cc);
-        })
-      );
-      if (!connected) return "La mossa deve collegarsi ad almeno una lettera già presente.";
-    }
-    return null;
+  function schedulePreview() {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      if (pending.length) send({ type: "preview", placements: placements() });
+      else preview = null;
+    }, 120);
   }
 
   // --- Azioni -----------------------------------------------------------
   function commit() {
-    if (gameOver) return;
-    const err = validateMove();
-    if (err) { setStatus("⚠ " + err); return; }
-
-    const score = updateScore();
-    const player = players[current];
-    player.score += score;
-
-    move = [];
-    moveSet = new Set();
-    paintTiles();
-    updateScore();
-
-    drawFor(player);
-    const who = player.name;
-    current = (current + 1) % players.length;
-    renderPlayers();
-    renderRack();
-    updateScore();
-
-    if (bag.length === 0 && players.every((p) => p.rack.length === 0)) {
-      gameOver = true;
-      const best = players.reduce((a, b) => (b.score > a.score ? b : a));
-      setStatus(`Partita finita! Vince ${best.name} con ${best.score} punti.`);
-    } else {
-      setStatus(`${who}: +${score} punti. Tocca a ${players[current].name}.`);
-    }
+    if (!isMyTurn() || !pending.length) return;
+    awaitingMove = true;
+    renderControls();
+    send({ type: "move", placements: placements() });
   }
 
   function undo() {
-    if (gameOver) return;
-    for (const { r, c } of move) {
-      const t = board[r][c];
-      if (t && t.letter !== undefined) players[current].rack.push(t.jolly ? "?" : t.letter);
-      board[r][c] = { type: LAYOUT[r][c] };
-    }
-    move = [];
-    moveSet = new Set();
+    if (!isMyTurn()) return;
+    pending = [];
+    preview = null;
     selected = -1;
-    paintTiles();
+    renderBoard();
     renderRack();
-    updateScore();
+    renderControls();
+    updateMoveScore();
     setStatus("Mossa annullata.");
   }
 
-  function setStatus(msg) {
-    $("status").textContent = msg;
+  function pass() {
+    if (!isMyTurn()) return;
+    send({ type: "pass" });
   }
 
   // --- Tileset (pannello) ----------------------------------------------
@@ -458,6 +364,15 @@
     }
   }
 
+  // --- Utilità ----------------------------------------------------------
+  function setStatus(msg) { $("status").textContent = msg; }
+  function setConn(msg) { $("conn-status").textContent = msg; }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+
   // --- Avvio ------------------------------------------------------------
   function init() {
     const defsHost = document.createElementNS(NS, "svg");
@@ -467,37 +382,33 @@
     defsHost.innerHTML = buildDefs();
     document.body.insertBefore(defsHost, document.body.firstChild);
 
-    renderTileset();
-    startGame(parseInt($("player-count").value, 10) || 2);
+    // plancia statica
+    const board = $("board");
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const cell = document.createElement("div");
+        const type = LAYOUT[r][c];
+        cell.className = "cell " + CELL_CLASS[type];
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        if (type === "C") cell.textContent = "🪲";
+        else if (CELL_LABEL[type]) cell.textContent = CELL_LABEL[type];
+        cell.addEventListener("click", () => onCellClick(r, c));
+        board.appendChild(cell);
+      }
+    }
 
+    renderTileset();
+    $("join").addEventListener("click", () => {
+      send({ type: "join", name: $("name").value, game: $("game-code").value.trim().toUpperCase() });
+    });
+    $("start").addEventListener("click", () => send({ type: "start" }));
+    $("restart").addEventListener("click", () => send({ type: "restart" }));
     $("commit").addEventListener("click", commit);
     $("undo").addEventListener("click", undo);
-    $("new-game").addEventListener("click", () =>
-      startGame(parseInt($("player-count").value, 10) || 2)
-    );
-    $("player-count").addEventListener("change", () =>
-      startGame(parseInt($("player-count").value, 10) || 2)
-    );
+    $("pass").addEventListener("click", pass);
 
-    // Hook di test opzionale: attivo solo se window.__SCARABEO_TEST__ è true.
-    if (window.__SCARABEO_TEST__) {
-      window.__scarabeo = {
-        startGame,
-        commit,
-        undo,
-        setRack(letters) { players[current].rack = letters.slice(); selected = -1; renderRack(); },
-        place(r, c, letter) {
-          board[r][c] = { type: LAYOUT[r][c], letter, value: VALUES[letter] };
-          move.push({ r, c });
-          moveSet.add(r + "," + c);
-          paintTiles();
-          updateScore();
-        },
-        currentScore: () => players[current].score,
-        validate: () => validateMove(),
-        moveScore: () => updateScore(),
-      };
-    }
+    connect();
   }
 
   document.addEventListener("DOMContentLoaded", init);

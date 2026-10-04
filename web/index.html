@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Scarabeo — Tavolo di gioco (17×17)</title>
+  <title>Scarabeo — Tavolo di gioco multigiocatore</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <h1><span class="logo">🪲</span> Scarabeo <small>tavolo di gioco · edizione italiana</small></h1>
+    <h1><span class="logo">🪲</span> Scarabeo <small>multigiocatore · edizione italiana</small></h1>
     <p class="intro">
-      Plancia 17×17 ricostruita dalla plancia originale Editrice Giochi.
-      Tileset SVG originale, nessuna immagine di terze parti.
-      Seleziona una tessera del rack e clicca una casella per posarla.
+      Plancia 17×17 ricostruita dalla plancia originale Editrice Giochi, con tileset
+      SVG originale. Le regole sono validate dal <strong>server</strong>: crea una
+      partita, condividi il codice e giocate da più dispositivi.
     </p>
   </header>
 
@@ -21,32 +21,41 @@
       <div id="board" class="board" role="grid" aria-label="Plancia Scarabeo 17 per 17"></div>
       <div class="board-actions">
         <span id="move-score" class="move-score">Punteggio mossa: 0</span>
-        <button id="commit" class="btn primary">Conferma mossa</button>
-        <button id="undo" class="btn">Annulla mossa</button>
+        <button id="commit" class="btn primary" disabled>Conferma mossa</button>
+        <button id="undo" class="btn" disabled>Annulla mossa</button>
+        <button id="pass" class="btn" disabled>Passa</button>
       </div>
     </section>
 
     <aside class="side">
       <section class="card">
-        <h2>Partita</h2>
+        <h2>Connetti</h2>
         <div class="setup">
-          <label>Giocatori
-            <select id="player-count">
-              <option value="2" selected>2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
-          </label>
-          <button id="new-game" class="btn danger">Nuova partita</button>
+          <label>Nome <input id="name" type="text" maxlength="20" placeholder="Il tuo nome"></label>
         </div>
-        <ul id="players" class="players"></ul>
+        <div class="setup">
+          <label>Codice <input id="game-code" type="text" maxlength="6" placeholder="vuoto = nuova partita"></label>
+        </div>
+        <div class="controls">
+          <button id="join" class="btn primary">Crea / Entra</button>
+        </div>
+        <p id="conn-status" class="status">Non connesso.</p>
       </section>
 
-      <section class="card">
+      <section id="game-card" class="card hidden">
+        <h2>Partita <span id="lobby-code" class="code"></span></h2>
+        <ul id="players" class="players"></ul>
+        <div class="controls">
+          <button id="start" class="btn primary hidden">Avvia partita</button>
+          <button id="restart" class="btn danger hidden">Nuova partita</button>
+        </div>
+      </section>
+
+      <section id="rack-card" class="card hidden">
         <h2>Rack · <span id="current-player">—</span></h2>
         <div id="rack" class="rack"></div>
         <p id="status" class="status">—</p>
-        <p class="bag-info">Tessere nel sacchetto: <strong id="bag-count">130</strong></p>
+        <p class="bag-info">Tessere nel sacchetto: <strong id="bag-count">0</strong></p>
       </section>
 
       <section class="card">
@@ -71,10 +80,9 @@
 
   <footer class="footer">
     <p>
-      Regole: la prima parola copre il centro; le tessere di ogni mossa stanno su
-      una sola riga/colonna, adiacenti, e devono collegarsi a lettere già presenti.
-      Le parole giocate non si modificano. Bonus: 6 lettere +10, 7 +30, 8 +50;
-      parola <strong>SCARABEO</strong> +100.
+      Server autoritativo: prima parola sul centro, tessere in linea e adiacenti,
+      collegamento a lettere esistenti, parole bloccate, bonus 6/7/8 (+10/+30/+50)
+      e <strong>SCARABEO +100</strong>. Turni tra 2–4 giocatori.
     </p>
   </footer>
 

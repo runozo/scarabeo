@@ -63,7 +63,7 @@ run-play: build ## Simulate a game (PLAYERS=... SEED=... MAX_TURNS=...)
 run-top: build ## Show the best words (TOP_N=...)
 	$(BIN_DIR)/$(BINARY) top -dict $(DICT) -rack-size $(RACK) -n $(TOP_N)
 
-serve: ## Serve the HTML board page at http://localhost:8080
+serve: ## Run the multiplayer game server at http://localhost:8080
 	$(GO) run ./cmd/webserve -addr :8080 -dir web
 
 ## Quality
