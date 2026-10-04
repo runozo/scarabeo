@@ -1,47 +1,124 @@
 # scarabeo
 
-This is a simple brute force [Scrabble](https://boardgamegeek.com/boardgame/12747/scarabeo) game solver. For now it's only for italian version but it's very easy to add dicts for other languages.
+A simple brute-force [Scarabeo](https://boardgamegeek.com/boardgame/12747/scarabeo)
+(Italian Scrabble) solver written in Go. It ships with an Italian dictionary;
+supporting another language is just a matter of pointing `-dict` at a text file
+with one word per line.
+
+## Build
+
+```sh
+make build          # builds ./bin/scarabeo
+```
+
+The Makefile covers cross-compilation, running, testing and benchmarking. Run
+`make` (or `make help`) to list every target:
+
+```sh
+make build-all              # linux/amd64, darwin/arm64, windows/amd64
+make run-solve CARET=asmmquosd CROSSING=a
+make run-play PLAYERS=2 SEED=42 MAX_TURNS=5
+make run-top TOP_N=10
+make test                   # also: test-race, test-verbose, test-cover
+make bench BENCHTIME=1s     # also: bench-cpu, bench-mem
+make fmt-check vet          # also: fmt, lint, tidy
+```
+
+Or build directly with the Go toolchain:
+
+```sh
+go build -o scarabeo .
+```
 
 ## Usage
 
-Just pass your caret letters as first parameter then the letter you need to cross with your word as second parameter (may be also empty). It returns a rough list of (word, score) ordered tuples. 
-
-### Quickstart 
-
-#### check how the solver works
 ```
-$ python3 solver.py "asmmquosd" "a"
-('asmmquosd', 'a')
-CARET LEN: 9
-[('squamosa', 51), ('sudammo', 25), ('ammasso', 19), ('squama', 19), ('squamo', 19), ('qua', 15), ('adusa', 11), ('aduso', 11), ('ammusa', 11), ('muda', 11), ('usammo', 11), ('assuma', 10), ('assumo', 10), ('damma', 10), ('domma', 10), ('suda', 10), ('summa', 10), ('adamo', 9), ('assoda', 9), ('mussa', 9), ('sdama', 9), ('sdamo', 9), ('dama', 8), ('damo', 8), ('doma', 8), ('moda', 8), ('musa', 8), ('suasa', 8), ('suaso', 8), ('dosa', 7), ('soda', 7), ('somma', 7), ('susa', 7), ('uosa', 7), ('ada', 6), ('mamo', 6), ('massa', 6), ('masso', 6), ('mossa', 6), ('oda', 6), ('samoa', 6), ('sua', 6), ('usa', 6), ('ad', 5), ('asma', 5), ('au', 5), ('da', 5), ('maso', 5), ('mass', 5), ('samo', 5), ('soma', 5), ('ama', 4), ('amo', 4), ('asso', 4), ('mao', 4), ('mas', 4), ('moa', 4), ('oma', 4), ('ossa', 4), ('ma', 3), ('osa', 3), ('sa', 2)]
+scarabeo solve [flags] <caret>
+scarabeo play  [flags]
+scarabeo top   [flags]
+scarabeo version
 ```
-#### or launch a simulation
 
+Flags shared by every command:
+
+| Flag            | Default            | Description                              |
+| --------------- | ------------------ | ---------------------------------------- |
+| `-dict`         | `dicts/italia-1a`  | Path to the word list                    |
+| `-rack-size`    | `8`                | Number of tiles on the rack              |
+| `-allow-punct`  | `false`            | Keep hyphen and apostrophe in words      |
+| `-verbose`      | `false`            | Print dictionary statistics              |
+
+Flags must come **before** positional arguments (standard Go flag parsing).
+
+### Solve
+
+Pass your rack letters as the positional argument and, optionally, the letters
+you must cross using `-crossing`. In a crossing pattern `_` (or a space) is a
+wildcard that matches any letter.
+
+```sh
+$ ./scarabeo solve -crossing a asmmquosd
+CARET: asmmquosd
+CROSSING: a
+WORDS: 62
+
+WORD      SCORE
+squamosa  51
+sudammo   25
+ammasso   19
+squama    19
+...
 ```
-$ python3 real_game_simulation.py
-A game simulation
+
+Add `-json` for machine-readable output:
+
+```sh
+$ ./scarabeo solve -json -crossing a asmmquosd
+```
+
+### Top words
+
+Find the most valuable words buildable from the full set of tiles:
+
+```sh
+$ ./scarabeo top -n 10
+WORD      SCORE
+ziqqurat  86
+vaghezza  85
+...
+```
+
+### Game simulation
+
+Play a full game between automated players. `-seed 0` (the default) uses the
+current time; pass a fixed seed for a reproducible game.
+
+```sh
+$ ./scarabeo play -players 2 -seed 42
 Turn 0
-King Kong crate: ['l', 'n', 'i', 'e', 'z', 's', 'i', 'v'], len: 8, score: 0, words: []
-King Kong plays: ('silenzi', 46)
-King Kong crate: ['v'], len: 1, score: 46, words: [('silenzi', 46)]
-Hulk crate: ['f', 'o', 'c', 'o', 'r', 'r', 'a', 'm'], len: 8, score: 0, words: []
-Hulk plays: ('amorfo', 20)
-Hulk crate: ['c', 'r'], len: 2, score: 20, words: [('amorfo', 20)]
-Global crate: ['a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'b', 'c', 'c', 'c', 'c', 'c', 'c', 'd', 'd', 'd', 'd', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'f', 'f', 'f', 'g', 'g', 'g', 'g', 'h', 'h', 'i', 'i', 'i', 'i', 'i', 'i', 'i', 'i', 'i', 'l', 'l', 'l', 'l', 'l', 'm', 'm', 'm', 'm', 'm', 'n', 'n', 'n', 'n', 'n', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'p', 'p', 'p', 'p', 'q', 'q', 'r', 'r', 'r', 'r', 'r', 's', 's', 's', 's', 's', 's', 't', 't', 't', 't', 't', 't', 't', 'u', 'u', 'u', 'u', 'v', 'v', 'v', 'z']
-Turn 1
-King Kong crate: ['v', 'f', 'n', 't', 'e', 'i', 'a', 'm'], len: 8, score: 46, words: [('silenzi', 46)]
-King Kong plays: ('mentiva', 42)
-King Kong crate: ['f'], len: 1, score: 88, words: [('silenzi', 46), ('mentiva', 42)]
-Hulk crate: ['c', 'r', 'i', 'c', 'q', 'm', 'b', 't'], len: 8, score: 20, words: [('amorfo', 20)]
-Hulk plays: ('bit', 6)
-Hulk crate: ['c', 'r', 'c', 'q', 'm'], len: 5, score: 26, words: [('amorfo', 20), ('bit', 6)]
-Global crate: ['a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'c', 'c', 'd', 'd', 'd', 'd', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'e', 'f', 'f', 'g', 'g', 'g', 'g', 'h', 'h', 'i', 'i', 'i', 'i', 'i', 'i', 'i', 'l', 'l', 'l', 'l', 'l', 'm', 'm', 'm', 'n', 'n', 'n', 'n', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'p', 'p', 'p', 'p', 'q', 'r', 'r', 'r', 'r', 'r', 's', 's', 's', 's', 's', 's', 't', 't', 't', 't', 't', 'u', 'u', 'u', 'u', 'v', 'v', 'v', 'z']
-...
+Player 1 plays urgevi (25) | total 25 | rack "sz"
+Player 2 plays barena (20) | total 20 | rack "se"
+Global crate: 111 tiles
 ...
 ```
 
+## Scoring
 
-## TODO
+Letter values follow the Italian Scarabeo rules. Length bonuses are applied on
+the number of letters drawn from the rack (word length minus the fixed crossing
+letters): 6 letters +10, 7 letters +30, 8 letters +50.
 
-Make a RESTful service.
+## Dictionary
 
+`dicts/italia-1a` is a raw word list: it contains empty lines, NUL bytes,
+uppercase entries, punctuation and a few malformed long lines. The loader cleans
+it on the fly, keeping only lowercase `a-z` words (`-allow-punct` also keeps `-`
+and `'`), rejecting any line that contains invalid characters, and removing
+duplicates. `-verbose` reports how many lines were kept and skipped.
+
+## Tests
+
+```sh
+go test ./...
+go test -bench . ./internal/engine
+```
