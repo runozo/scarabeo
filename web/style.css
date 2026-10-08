@@ -140,7 +140,7 @@ body {
 
 .rack {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 4px;
   padding: 8px;
   border-radius: 8px;
@@ -148,6 +148,7 @@ body {
   min-height: 62px;
 }
 .rack .tile-btn {
+  min-width: 0;
   aspect-ratio: 1 / 1;
   padding: 0;
   border: 0;
