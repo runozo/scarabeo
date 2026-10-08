@@ -35,8 +35,9 @@ func (s *Solver) RackSize() int { return s.rackSize }
 func (s *Solver) Dictionary() *Dictionary { return s.dict }
 
 // FindWords returns every word that can be formed from caret, filtered by the
-// optional crossing pattern. Results are sorted by score (descending) and then
-// alphabetically, making the output deterministic.
+// optional crossing pattern. A '?' in caret is a jolly that can stand for any
+// letter. Results are sorted by score (descending) and then alphabetically,
+// making the output deterministic.
 func (s *Solver) FindWords(caret, crossing string) ([]Word, error) {
 	rack, err := normalizeRack(caret)
 	if err != nil {
@@ -52,7 +53,12 @@ func (s *Solver) FindWords(caret, crossing string) ([]Word, error) {
 	pool := rack + fixed
 
 	var poolCounts [alphabetSize]int
+	jollies := 0
 	for i := 0; i < len(pool); i++ {
+		if pool[i] == Jolly {
+			jollies++
+			continue
+		}
 		poolCounts[pool[i]-'a']++
 	}
 
@@ -68,7 +74,7 @@ func (s *Solver) FindWords(caret, crossing string) ([]Word, error) {
 			if !pattern.Matches(entry.text) {
 				continue
 			}
-			if !fits(entry.counts, poolCounts) {
+			if !fits(entry.counts, poolCounts, jollies) {
 				continue
 			}
 			found = append(found, Word{
@@ -107,18 +113,20 @@ func (s *Solver) Score(word string, fixedCrossing int) int {
 	return total
 }
 
-// fits reports whether every letter of the word is available in the pool.
-func fits(word [alphabetSize]uint8, pool [alphabetSize]int) bool {
+// fits reports whether every letter of the word is available in the pool,
+// spending at most jollies wildcard tiles on the missing letters.
+func fits(word [alphabetSize]uint8, pool [alphabetSize]int, jollies int) bool {
+	missing := 0
 	for i := 0; i < alphabetSize; i++ {
-		if int(word[i]) > pool[i] {
-			return false
+		if d := int(word[i]) - pool[i]; d > 0 {
+			missing += d
 		}
 	}
-	return true
+	return missing <= jollies
 }
 
-// normalizeRack lowercases a rack, ignores whitespace and underscores, and
-// rejects anything that is not an a-z letter.
+// normalizeRack lowercases a rack, keeps the jolly wildcard ('?'), ignores
+// whitespace and underscores, and rejects anything else that is not a-z.
 func normalizeRack(caret string) (string, error) {
 	var b strings.Builder
 	b.Grow(len(caret))
@@ -129,6 +137,8 @@ func normalizeRack(caret string) (string, error) {
 			b.WriteByte(c)
 		case c >= 'A' && c <= 'Z':
 			b.WriteByte(c - 'A' + 'a')
+		case c == Jolly:
+			b.WriteByte(Jolly)
 		case c == ' ' || c == '\t' || c == '_':
 			// ignored separators
 		default:

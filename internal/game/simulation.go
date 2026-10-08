@@ -8,10 +8,13 @@ import (
 	"github.com/runozo/scarabeo/internal/engine"
 )
 
-// DefaultGlobalCrate is the full set of Scarabeo tiles.
+// DefaultGlobalCrate is the full set of Scarabeo tiles: the 21 Italian letters
+// with their Scarabeo counts plus the two jolly tiles ('?'), for 130 tiles in
+// total. It mirrors play.Counts.
 const DefaultGlobalCrate = "aaaaaaaaaaaabbbbcccccccddddeeeeeeeeeeee" +
-	"ffffgggghhiiiiiiiiiiillllllmmmmmmnnnnnnoo" +
-	"ooooooooooppppqqrrrrrrrssssssstttttttuuuuvvvvzz"
+	"ffffgggghhiiiiiiiiiiiillllllmmmmmmnnnnnnoo" +
+	"ooooooooooppppqqrrrrrrrssssssstttttttuuuuvvvvzz" +
+	"??"
 
 // Config controls a simulation run.
 type Config struct {

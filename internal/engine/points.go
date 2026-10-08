@@ -5,6 +5,10 @@ package engine
 // loanwords loaded from a dirty dictionary never crash the scorer.
 const alphabetSize = 26
 
+// Jolly is the wildcard tile accepted in a rack. It stands for any letter and
+// is scored as the letter it substitutes.
+const Jolly = '?'
+
 // letterPoints maps a letter (index = letter-'a') to its Scarabeo value.
 var letterPoints = [alphabetSize]int{
 	// a  b  c  d  e  f  g  h  i  j  k  l  m

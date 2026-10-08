@@ -33,8 +33,12 @@ func (p *Player) PickFromCrate(gameCrate []byte, rng *rand.Rand, rackSize int) [
 	return gameCrate
 }
 
+// Jolly is the wildcard tile used in the crate.
+const Jolly = '?'
+
 // PlayOneMove plays the highest scoring word available and removes its letters
-// from the rack. It returns false when no word can be formed.
+// from the rack. When a letter is not present, a jolly tile ('?') is spent in
+// its place. It returns false when no word can be formed.
 func (p *Player) PlayOneMove() (engine.Word, bool) {
 	words, err := p.solver.FindWords(string(p.Crate), "")
 	if err != nil || len(words) == 0 {
@@ -43,18 +47,23 @@ func (p *Player) PlayOneMove() (engine.Word, bool) {
 
 	best := words[0]
 	for i := 0; i < len(best.Text); i++ {
-		p.removeLetter(best.Text[i])
+		if !p.removeLetter(best.Text[i]) {
+			p.removeLetter(Jolly)
+		}
 	}
 	p.Words = append(p.Words, best)
 	p.Score += best.Score
 	return best, true
 }
 
-func (p *Player) removeLetter(c byte) {
+// removeLetter removes the first occurrence of c from the rack and reports
+// whether it was found.
+func (p *Player) removeLetter(c byte) bool {
 	for i, r := range p.Crate {
 		if r == c {
 			p.Crate = append(p.Crate[:i], p.Crate[i+1:]...)
-			return
+			return true
 		}
 	}
+	return false
 }

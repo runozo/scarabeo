@@ -27,6 +27,13 @@ func (p Phase) String() string {
 	}
 }
 
+// WordValidator reports whether a word (in any case) belongs to the
+// dictionary. It is implemented by *engine.Dictionary. A nil validator
+// disables word checking.
+type WordValidator interface {
+	Has(word string) bool
+}
+
 // Tile is a letter tile on the board.
 type Tile struct {
 	Letter   byte
@@ -123,24 +130,26 @@ type State struct {
 
 // Game holds the complete authoritative state of a match.
 type Game struct {
-	Code    string
-	board   [Size][Size]Cell
-	players []*Player
-	bag     []byte
-	current int
-	phase   Phase
-	last    *MoveResult
-	winner  string
-	passes  int
-	rng     *rand.Rand
+	Code      string
+	board     [Size][Size]Cell
+	players   []*Player
+	bag       []byte
+	current   int
+	phase     Phase
+	last      *MoveResult
+	winner    string
+	passes    int
+	rng       *rand.Rand
+	validator WordValidator
 }
 
-// NewGame creates an empty game in the lobby phase.
-func NewGame(code string, rng *rand.Rand) *Game {
+// NewGame creates an empty game in the lobby phase. validator checks the words
+// formed by a move; pass nil to disable word checking.
+func NewGame(code string, rng *rand.Rand, validator WordValidator) *Game {
 	if rng == nil {
 		rng = rand.New(rand.NewSource(rand.Int63()))
 	}
-	g := &Game{Code: code, phase: Lobby, rng: rng}
+	g := &Game{Code: code, phase: Lobby, rng: rng, validator: validator}
 	for r := 0; r < Size; r++ {
 		for c := 0; c < Size; c++ {
 			g.board[r][c].Type = Layout[r][c]
@@ -519,6 +528,15 @@ func (g *Game) analyze(playerID string, placements []Placement) (score int, word
 		}
 		if !connected {
 			return 0, nil, nil, 0, 0, errors.New("la mossa deve collegarsi ad almeno una lettera già presente")
+		}
+	}
+
+	// every newly formed word must be in the dictionary
+	if g.validator != nil {
+		for _, w := range words {
+			if len(w) >= 2 && !g.validator.Has(w) {
+				return 0, nil, nil, 0, 0, fmt.Errorf("parola non valida: %s", w)
+			}
 		}
 	}
 

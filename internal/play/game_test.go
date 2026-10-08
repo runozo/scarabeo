@@ -3,12 +3,28 @@ package play
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
+// acceptAll is a permissive WordValidator for tests that focus on board rules
+// rather than dictionary membership.
+type acceptAll struct{}
+
+func (acceptAll) Has(string) bool { return true }
+
+// strictValidator accepts only the listed words, ignoring case.
+type strictValidator map[string]bool
+
+func (s strictValidator) Has(word string) bool { return s[strings.ToLower(word)] }
+
 func newTestGame(t *testing.T, racks ...string) *Game {
+	return newTestGameWith(t, acceptAll{}, racks...)
+}
+
+func newTestGameWith(t *testing.T, validator WordValidator, racks ...string) *Game {
 	t.Helper()
-	g := NewGame("TEST", rand.New(rand.NewSource(1)))
+	g := NewGame("TEST", rand.New(rand.NewSource(1)), validator)
 	for i := range racks {
 		id := fmt.Sprintf("p%d", i+1)
 		if _, err := g.AddPlayer(id, fmt.Sprintf("P%d", i+1)); err != nil {
@@ -177,5 +193,24 @@ func TestStateHidesOtherRacks(t *testing.T) {
 	}
 	if len(st.Board) != 0 {
 		t.Fatal("board should be empty")
+	}
+}
+
+func TestWordValidation(t *testing.T) {
+	// a move forming a known word is accepted
+	g := newTestGameWith(t, strictValidator{"casa": true}, "CASA", "CASA")
+	if _, err := g.Apply("p1", []Placement{pl(8, 7, "C"), pl(8, 8, "A"), pl(8, 9, "S"), pl(8, 10, "A")}); err != nil {
+		t.Fatalf("valid word rejected: %v", err)
+	}
+
+	// a move forming an unknown word is rejected, both in preview and apply
+	g2 := newTestGameWith(t, strictValidator{"casa": true}, "CASO", "CASA")
+	move := []Placement{pl(8, 7, "C"), pl(8, 8, "A"), pl(8, 9, "S"), pl(8, 10, "O")}
+	preview := g2.Preview("p1", move)
+	if preview.Valid || !strings.Contains(preview.Error, "parola non valida") {
+		t.Fatalf("expected invalid word preview, got %+v", preview)
+	}
+	if _, err := g2.Apply("p1", move); err == nil {
+		t.Fatal("expected invalid word to be rejected")
 	}
 }

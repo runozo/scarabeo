@@ -198,15 +198,34 @@
       cells[i].classList.remove("filled", "locked", "pending");
       cells[i].querySelectorAll("svg.tile").forEach((n) => n.remove());
     }
-    const put = (r, c, letter, cls) => {
+    const put = (r, c, letter, ...cls) => {
       const el = cells[r * SIZE + c];
       el.appendChild(tileSVG(letter));
-      el.classList.add(cls);
+      el.classList.add(...cls);
     };
     if (state) {
-      for (const t of state.board) put(t.row, t.col, t.letter, "filled locked");
+      for (const t of state.board) put(t.row, t.col, t.letter, "filled", "locked");
     }
     for (const p of pending) put(p.r, p.c, p.jolly ? p.assigned : p.letter, "pending");
+  }
+
+  // Indices of the rack tiles still available, i.e. not yet spent on a
+  // pending placement. A placed tile disappears from the rack and comes back
+  // when the placement is removed (board click or "Annulla mossa").
+  function availableRackIndices() {
+    const spent = pending.map((p) => p.letter);
+    const out = [];
+    const rack = state ? state.rack : [];
+    for (let i = 0; i < rack.length; i++) {
+      if (!rack[i]) continue;
+      const j = spent.indexOf(rack[i]);
+      if (j >= 0) {
+        spent.splice(j, 1);
+        continue;
+      }
+      out.push(i);
+    }
+    return out;
   }
 
   function renderRack() {
@@ -214,18 +233,14 @@
     el.innerHTML = "";
     const rack = state ? state.rack : [];
     const myTurn = isMyTurn();
-    for (let i = 0; i < 8; i++) {
+    for (const i of availableRackIndices()) {
       const L = rack[i];
       const btn = document.createElement("button");
       btn.className = "tile-btn" + (i === selected ? " selected" : "");
       btn.type = "button";
-      if (L) {
-        btn.appendChild(tileSVG(L));
-        btn.title = L === "?" ? "Scarabeo (jolly)" : `Tessera ${L} (${VALUES[L]})`;
-        btn.disabled = !myTurn;
-      } else {
-        btn.disabled = true;
-      }
+      btn.appendChild(tileSVG(L));
+      btn.title = L === "?" ? "Scarabeo (jolly)" : `Tessera ${L} (${VALUES[L]})`;
+      btn.disabled = !myTurn;
       btn.addEventListener("click", () => onRackClick(i));
       el.appendChild(btn);
     }
@@ -277,6 +292,7 @@
       pending.splice(pi, 1);
       schedulePreview();
       renderBoard();
+      renderRack();
       renderControls();
       updateMoveScore();
       return;

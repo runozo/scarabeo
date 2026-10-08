@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/coder/websocket"
+	"github.com/runozo/scarabeo/internal/play"
 )
 
 // Server ties the room hub to the HTTP handlers.
@@ -17,8 +18,10 @@ type Server struct {
 }
 
 // New creates a server serving static files from staticDir and games on /ws.
-func New(staticDir string) *Server {
-	return &Server{hub: NewHub(), staticDir: staticDir}
+// validator is used to check the words played; pass nil to disable word
+// checking.
+func New(staticDir string, validator play.WordValidator) *Server {
+	return &Server{hub: NewHub(validator), staticDir: staticDir}
 }
 
 // Handler returns the HTTP handler (static files + /ws).

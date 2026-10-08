@@ -3,20 +3,25 @@ package server
 import (
 	"math/rand"
 	"sync"
+
+	"github.com/runozo/scarabeo/internal/play"
 )
 
 // Hub keeps track of all active game rooms.
 type Hub struct {
-	mu    sync.Mutex
-	rooms map[string]*Room
-	rng   *rand.Rand
+	mu        sync.Mutex
+	rooms     map[string]*Room
+	rng       *rand.Rand
+	validator play.WordValidator
 }
 
-// NewHub creates an empty hub.
-func NewHub() *Hub {
+// NewHub creates an empty hub. validator is shared by every room to check the
+// words played; pass nil to disable word checking.
+func NewHub(validator play.WordValidator) *Hub {
 	return &Hub{
-		rooms: make(map[string]*Room),
-		rng:   rand.New(rand.NewSource(rand.Int63())),
+		rooms:     make(map[string]*Room),
+		rng:       rand.New(rand.NewSource(rand.Int63())),
+		validator: validator,
 	}
 }
 

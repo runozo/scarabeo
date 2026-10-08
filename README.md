@@ -83,6 +83,8 @@ Find the most valuable words buildable from the full set of tiles:
 ```sh
 $ ./scarabeo top -n 10
 WORD      SCORE
+rozzezza  86
+rozzezze  86
 ziqqurat  86
 vaghezza  85
 ...
@@ -96,9 +98,9 @@ current time; pass a fixed seed for a reproducible game.
 ```sh
 $ ./scarabeo play -players 2 -seed 42
 Turn 0
-Player 1 plays urgevi (25) | total 25 | rack "sz"
-Player 2 plays barena (20) | total 20 | rack "se"
-Global crate: 111 tiles
+Player 1 plays rissosa (37) | total 37 | rack "e"
+Player 2 plays fienaio (41) | total 41 | rack "h"
+Global crate: 114 tiles
 ...
 ```
 
@@ -111,6 +113,7 @@ vivono sul server**: il client invia solo le mosse e riceve lo stato.
 
 ```sh
 make serve          # http://localhost:8080
+# or: go run ./cmd/webserve -addr :8080 -dir web -dict dicts/italia-1a
 ```
 
 Apri la pagina su più browser/dispositivi e inserisci un nome: il primo crea la
@@ -125,6 +128,9 @@ Regole validate dal server:
 - le tessere di una mossa stanno su **una sola riga o colonna**, **adiacenti**
   (senza buchi) e devono **collegarsi** ad almeno una lettera già presente;
 - le **parole già giocate sono bloccate** e non si possono modificare;
+- ogni **parola formata deve esistere nel dizionario** (caricato con `-dict`,
+  default `dicts/italia-1a`); vale sia per la parola principale sia per le
+  parole incrociate;
 - bonus lunghezza 6/7/8 → +10/+30/+50 e bonus speciale **+100 per la parola
   “SCARABEO”**;
 - fine partita quando il sacchetto è vuoto e nessuno ha più tessere (o tutti
@@ -137,10 +143,10 @@ Architettura:
 
 | Pacchetto | Ruolo |
 | --- | --- |
-| `internal/play` | Motore autoritativo: plancia, regole, punteggio |
+| `internal/play` | Motore autoritativo: plancia, regole, validazione parole, punteggio |
 | `internal/server` | Hub delle stanze, connessioni WebSocket, protocollo |
 | `web/` | Client thin: rendering e invio mosse |
-| `cmd/webserve` | Avvia server HTTP + WebSocket e serve `web/` |
+| `cmd/webserve` | Carica il dizionario, avvia server HTTP + WebSocket e serve `web/` |
 
 Il layout delle caselle premio è stato ricostruito dalla plancia originale
 Editrice Giochi ed è verificato per simmetria; il tileset è in `web/tiles.svg`.

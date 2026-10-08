@@ -80,15 +80,21 @@ func (c *testClient) waitPhase(phase string) *play.State {
 	return nil
 }
 
-func newTestServer(t *testing.T) (*httptest.Server, string) {
+// rejectAll rejects every word, so tests can assert that word checking is
+// enforced server-side.
+type rejectAll struct{}
+
+func (rejectAll) Has(string) bool { return false }
+
+func newTestServer(t *testing.T, validator play.WordValidator) (*httptest.Server, string) {
 	t.Helper()
-	srv := httptest.NewServer(New("../../web").Handler())
+	srv := httptest.NewServer(New("../../web", validator).Handler())
 	t.Cleanup(srv.Close)
 	return srv, "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
 }
 
 func TestLobbyAndStart(t *testing.T) {
-	_, url := newTestServer(t)
+	_, url := newTestServer(t, nil)
 
 	a := dial(t, url)
 	a.send(message{Type: msgJoin, Name: "Alice"})
@@ -119,7 +125,7 @@ func TestLobbyAndStart(t *testing.T) {
 }
 
 func TestMoveValidationIsServerSide(t *testing.T) {
-	_, url := newTestServer(t)
+	_, url := newTestServer(t, nil)
 
 	a := dial(t, url)
 	a.send(message{Type: msgJoin, Name: "Alice"})
@@ -153,7 +159,7 @@ func TestMoveValidationIsServerSide(t *testing.T) {
 }
 
 func TestPreviewIsServerSide(t *testing.T) {
-	_, url := newTestServer(t)
+	_, url := newTestServer(t, nil)
 
 	a := dial(t, url)
 	a.send(message{Type: msgJoin, Name: "Alice"})
@@ -174,5 +180,44 @@ func TestPreviewIsServerSide(t *testing.T) {
 	}
 	if pv.Preview.Valid {
 		t.Fatal("off-center preview should be invalid")
+	}
+}
+
+func TestWordValidationIsServerSide(t *testing.T) {
+	_, url := newTestServer(t, rejectAll{})
+
+	a := dial(t, url)
+	a.send(message{Type: msgJoin, Name: "Alice"})
+	joined := a.waitFor(msgJoined)
+	a.waitPhase("lobby")
+
+	b := dial(t, url)
+	b.send(message{Type: msgJoin, Game: joined.Game, Name: "Bob"})
+	b.waitFor(msgJoined)
+
+	a.send(message{Type: msgStart})
+	sa := a.waitPhase("playing")
+
+	// pick two non-jolly letters from the rack and play them across the center
+	letters := make([]string, 0, 2)
+	for _, l := range sa.Rack {
+		if l != "?" {
+			letters = append(letters, l)
+		}
+		if len(letters) == 2 {
+			break
+		}
+	}
+	if len(letters) < 2 {
+		t.Fatal("not enough letters on the rack")
+	}
+
+	a.send(message{Type: msgMove, Placements: []play.Placement{
+		{Row: 8, Col: 8, Letter: letters[0]},
+		{Row: 8, Col: 9, Letter: letters[1]},
+	}})
+	errMsg := a.waitFor(msgError)
+	if !strings.Contains(errMsg.Message, "parola non valida") {
+		t.Fatalf("expected a word validation error, got %q", errMsg.Message)
 	}
 }

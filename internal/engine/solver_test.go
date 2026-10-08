@@ -137,6 +137,43 @@ func TestFindWordsRejectsBadRack(t *testing.T) {
 	}
 }
 
+func TestFindWordsJolly(t *testing.T) {
+	s := New(mustLoad(t, testDictionary), 8)
+
+	// "casa" needs two 'a' but the rack has one: a single jolly covers it.
+	got, err := s.FindWords("cas?", "")
+	if err != nil {
+		t.Fatalf("FindWords: %v", err)
+	}
+	if !containsWord(got, "casa") {
+		t.Fatalf("expected casa in %v", wordList(got))
+	}
+	for _, w := range got {
+		if w.Text == "casa" && w.Score != 4 {
+			t.Fatalf("casa score = %d, want 4 (the jolly is worth the letter it replaces)", w.Score)
+		}
+	}
+
+	// one jolly cannot cover two different missing letters
+	got2, err := s.FindWords("c?", "")
+	if err != nil {
+		t.Fatalf("FindWords: %v", err)
+	}
+	if containsWord(got2, "casa") {
+		t.Fatalf("casa should not be found from %q: %v", "c?", wordList(got2))
+	}
+}
+
+func TestDictionaryHas(t *testing.T) {
+	d := mustLoad(t, testDictionary)
+	if !d.Has("casa") || !d.Has("Casa") || !d.Has(" CASA ") {
+		t.Fatal("expected casa to be found, ignoring case and spaces")
+	}
+	if d.Has("zzz") {
+		t.Fatal("zzz should not be in the dictionary")
+	}
+}
+
 func TestDictionaryCleaning(t *testing.T) {
 	dirty := strings.Join([]string{
 		"",

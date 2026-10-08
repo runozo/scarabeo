@@ -32,6 +32,7 @@ type wordEntry struct {
 // Dictionary is an immutable, cleaned word list indexed by word length.
 type Dictionary struct {
 	byLength map[int][]wordEntry
+	words    map[string]struct{}
 	maxLen   int
 	Stats    LoadStats
 }
@@ -49,8 +50,10 @@ func LoadDictionary(path string, opts LoadOptions) (*Dictionary, error) {
 // loadDictionary is the reader-based core of LoadDictionary, shared with
 // tests.
 func loadDictionary(r io.Reader, opts LoadOptions) (*Dictionary, error) {
-	d := &Dictionary{byLength: make(map[int][]wordEntry)}
-	seen := make(map[string]struct{})
+	d := &Dictionary{
+		byLength: make(map[int][]wordEntry),
+		words:    make(map[string]struct{}),
+	}
 
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
@@ -62,11 +65,11 @@ func loadDictionary(r io.Reader, opts LoadOptions) (*Dictionary, error) {
 			d.Stats.Skipped++
 			continue
 		}
-		if _, dup := seen[word]; dup {
+		if _, dup := d.words[word]; dup {
 			d.Stats.Skipped++
 			continue
 		}
-		seen[word] = struct{}{}
+		d.words[word] = struct{}{}
 
 		entry := wordEntry{text: word, counts: countLetters(word)}
 		d.byLength[len(word)] = append(d.byLength[len(word)], entry)
@@ -104,3 +107,14 @@ func sanitize(raw string, opts LoadOptions) (string, bool) {
 
 // MaxLen returns the length of the longest loaded word.
 func (d *Dictionary) MaxLen() int { return d.maxLen }
+
+// Has reports whether word is in the dictionary. The lookup is
+// case-insensitive and ignores surrounding whitespace so that board words can
+// be passed in any case.
+func (d *Dictionary) Has(word string) bool {
+	if d == nil {
+		return false
+	}
+	_, ok := d.words[strings.ToLower(strings.TrimSpace(word))]
+	return ok
+}

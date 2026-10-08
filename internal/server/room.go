@@ -28,7 +28,7 @@ func newRoom(code string, hub *Hub) *Room {
 	return &Room{
 		code:    code,
 		hub:     hub,
-		game:    play.NewGame(code, rng),
+		game:    play.NewGame(code, rng, hub.validator),
 		clients: make(map[string]*Client),
 	}
 }

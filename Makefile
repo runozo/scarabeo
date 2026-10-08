@@ -64,7 +64,7 @@ run-top: build ## Show the best words (TOP_N=...)
 	$(BIN_DIR)/$(BINARY) top -dict $(DICT) -rack-size $(RACK) -n $(TOP_N)
 
 serve: ## Run the multiplayer game server at http://localhost:8080
-	$(GO) run ./cmd/webserve -addr :8080 -dir web
+	$(GO) run ./cmd/webserve -addr :8080 -dir web -dict $(DICT)
 
 ## Quality
 
