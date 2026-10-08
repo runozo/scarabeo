@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -91,6 +92,19 @@ func newTestServer(t *testing.T, validator play.WordValidator) (*httptest.Server
 	srv := httptest.NewServer(New("../../web", validator).Handler())
 	t.Cleanup(srv.Close)
 	return srv, "ws" + strings.TrimPrefix(srv.URL, "http") + "/ws"
+}
+
+func TestStaticAssetsAreNotCached(t *testing.T) {
+	srv, _ := newTestServer(t, nil)
+
+	resp, err := http.Get(srv.URL + "/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if got := resp.Header.Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("Cache-Control = %q, want no-cache", got)
+	}
 }
 
 func TestLobbyAndStart(t *testing.T) {

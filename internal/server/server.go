@@ -28,8 +28,17 @@ func New(staticDir string, validator play.WordValidator) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", s.handleWS)
-	mux.Handle("/", http.FileServer(http.Dir(s.staticDir)))
+	mux.Handle("/", noCache(http.FileServer(http.Dir(s.staticDir))))
 	return mux
+}
+
+// noCache forces the browser to revalidate the static client on every load, so
+// a stale cached app.js cannot keep an old bug alive after the server changes.
+func noCache(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		h.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
